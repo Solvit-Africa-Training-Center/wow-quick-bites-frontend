@@ -43,14 +43,26 @@ export async function GET(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Frontend-Secret": process.env.BACKEND_FRONTEND_SECRET ?? "",
+        "X-Frontend-Secret": process.env.BACKEND_FRONTEND_SECRET,
       },
       body: JSON.stringify({ email: profile.email, name: profile.name }),
       cache: "no-store",
     });
-    if (!res.ok) return fail();
+    if (!res.ok) {
+      const errorBody = (await res.json().catch(() => null)) as
+        | { error?: { code?: unknown }; code?: unknown }
+        | null;
+      const candidateCode = errorBody?.error?.code ?? errorBody?.code;
+      const code =
+        typeof candidateCode === "string" && /^[a-z0-9_-]{1,80}$/i.test(candidateCode)
+          ? candidateCode
+          : "not_provided";
+      console.error("Google sign-in backend rejected the server request.", { status: res.status, code });
+      return fail();
+    }
     data = await res.json();
-  } catch {
+  } catch (error) {
+    console.error("Google sign-in backend request failed.", error);
     return fail();
   }
 

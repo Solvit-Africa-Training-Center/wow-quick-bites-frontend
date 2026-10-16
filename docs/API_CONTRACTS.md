@@ -126,9 +126,10 @@ Implemented on the frontend as OAuth 2.0 authorization code + PKCE (`app/api/aut
 (see `.env.example`). The account is matched by Google's **verified** email, or created as a client account.
 No phone step after Google sign-in: a missing phone is asked at checkout and can be added on the profile page.
 
-Needed from the backend: `POST /auth/google` `{ "email", "name" }` (called server-side by the callback, trusted
-caller) → `200 { "user": SessionUser }` (existing account) or `201` (new client account, code assigned). Staff
-emails are refused (`403 staff_password_only`). ❓ Or should the backend run the OAuth exchange itself? Right now we added google Oauth on our side.
+The callback calls `POST /auth/google/` server-to-server with `{ "email", "name" }` and the
+`X-Frontend-Secret` header. The backend contract documents `200` for an existing account and `201` for a new
+client account; both return `{ "access", "refresh", "user": SessionUser }`. The endpoint refuses staff
+accounts and requests without the configured frontend secret (`403`).
 
 ### `PATCH /me` — client
 `{ "name"?, "phone"? }` → `200 { "user": SessionUser }`. Used by the profile page (`/account/profile`). The email
